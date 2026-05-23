@@ -2,7 +2,7 @@ import type { Role } from './types'
 
 export const PERMISSIONS = {
   admin: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'teamtasks', 'finances', 'team', 'news'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'teamtasks', 'finances', 'team', 'news', 'recommendations'],
     canEditProductions: true,
     canEditGoals: true,
     canEditFinances: true,
@@ -13,9 +13,10 @@ export const PERMISSIONS = {
     canEditFestivals: true,
     canEditDistribution: true,
     canEditMarketing: true,
+    canSeeNorthStar: true,
   },
   kaleigh: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news', 'recommendations'],
     canEditProductions: false,
     canEditGoals: false,
     canEditFinances: false,
@@ -26,9 +27,10 @@ export const PERMISSIONS = {
     canEditFestivals: true,
     canEditDistribution: true,
     canEditMarketing: true,
+    canSeeNorthStar: false,
   },
   grecia: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news', 'recommendations'],
     canEditProductions: false,
     canEditGoals: false,
     canEditFinances: false,
@@ -39,9 +41,10 @@ export const PERMISSIONS = {
     canEditFestivals: false,
     canEditDistribution: false,
     canEditMarketing: false,
+    canSeeNorthStar: false,
   },
   meghan: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news', 'recommendations'],
     canEditProductions: false,
     canEditGoals: false,
     canEditFinances: false,
@@ -52,6 +55,7 @@ export const PERMISSIONS = {
     canEditFestivals: false,
     canEditDistribution: false,
     canEditMarketing: false,
+    canSeeNorthStar: false,
   },
 }
 
