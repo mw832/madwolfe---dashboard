@@ -26,13 +26,21 @@ function ProgressBar({ pct, color = '#b8b8c8' }: { pct: number; color?: string }
   )
 }
 
-function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, canEditDistribution }: {
+const EMPTY_PROJECT: Omit<Project, 'id'> = {
+  title: '', genre: '', format: 'Feature Film', logline: '', targetAudience: '',
+  budget: 0, spent: 0, shootStart: '', shootWrap: '', currentStage: 'Draft',
+  salesAgent: '', distributor: '', attachments: [], festivals: [], links: [], notes: ''
+}
+
+function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, canEditDistribution, isNew }: {
   project: Project; onBack: () => void; onSave?: (p: Project) => void
-  canEdit: boolean; canEditFestivals: boolean; canEditDistribution: boolean
+  canEdit: boolean; canEditFestivals: boolean; canEditDistribution: boolean; isNew?: boolean
 }) {
   const [p, setP] = useState<Project>(JSON.parse(JSON.stringify(project)))
   const [addingFest, setAddingFest] = useState(false)
+  const [addingAttach, setAddingAttach] = useState(false)
   const [newFest, setNewFest] = useState({ name: '', status: 'target' })
+  const [newAttach, setNewAttach] = useState('')
   const set = (k: keyof Project, v: any) => setP(prev => ({ ...prev, [k]: v }))
   const inp = { background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.88)', padding: '8px 12px', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box' as const }
   const btnStyle = (c: string) => ({ background: `${c}15`, border: `0.5px solid ${c}40`, borderRadius: 6, color: c, padding: '6px 14px', cursor: 'pointer', fontSize: 12 })
@@ -50,12 +58,12 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
         <button onClick={onBack} style={{ background: 'transparent', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.4)', padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}>← Back</button>
-        {canEdit && <button onClick={() => { onSave?.(p); onBack() }} style={{ background: 'rgba(184,184,200,0.1)', border: '0.5px solid rgba(184,184,200,0.3)', borderRadius: 6, color: '#b8b8c8', padding: '6px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>Save changes</button>}
+        {canEdit && <button onClick={() => { onSave?.(p); onBack() }} style={{ background: 'rgba(184,184,200,0.1)', border: '0.5px solid rgba(184,184,200,0.3)', borderRadius: 6, color: '#b8b8c8', padding: '6px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>{isNew ? 'Create project' : 'Save changes'}</button>}
       </div>
 
       <div style={{ marginBottom: 24 }}>
         {canEdit
-          ? <input value={p.title} onChange={e => set('title', e.target.value)} style={{ ...inp, fontSize: 22, fontWeight: 500, background: 'transparent', border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 0, padding: '0 0 6px 0', marginBottom: 12 }} />
+          ? <input value={p.title} onChange={e => set('title', e.target.value)} placeholder="Project title" style={{ ...inp, fontSize: 22, fontWeight: 500, background: 'transparent', border: 'none', borderBottom: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 0, padding: '0 0 6px 0', marginBottom: 12 }} />
           : <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 12 }}>{p.title}</div>
         }
         {canEdit
@@ -100,14 +108,14 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Shoot wrap</div>
             {canEdit ? <input type="date" value={p.shootWrap} onChange={e => set('shootWrap', e.target.value)} style={inp} /> : <div style={{ fontSize: 13 }}>{p.shootWrap || 'TBD'}</div>}
           </div>
+          <div style={{ gridColumn: '1/-1' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Target audience</div>
+            {canEdit ? <input value={p.targetAudience} onChange={e => set('targetAudience', e.target.value)} style={inp} /> : <div style={{ fontSize: 13 }}>{p.targetAudience}</div>}
+          </div>
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Budget raised — {fmt(p.spent)} of {fmt(p.budget)} goal</div>
-          <ProgressBar pct={Math.round((p.spent / p.budget) * 100)} color="#b89060" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 5 }}>
-            <span>{Math.round((p.spent / p.budget) * 100)}% raised</span>
-            <span>{fmt(p.budget - p.spent)} remaining</span>
-          </div>
+          <ProgressBar pct={p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0} color="#b89060" />
           {canEdit && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
               <div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Budget goal</div><input type="number" value={p.budget} onChange={e => set('budget', +e.target.value)} style={inp} /></div>
@@ -119,23 +127,29 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
 
       <Section label="Logline">
         {canEdit
-          ? <textarea value={p.logline} onChange={e => set('logline', e.target.value)} rows={3} style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
+          ? <textarea value={p.logline} onChange={e => set('logline', e.target.value)} rows={3} placeholder="One sentence that captures the story..." style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
           : <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7 }}>{p.logline}</div>
         }
       </Section>
 
-      {p.attachments.length > 0 && (
-        <Section label="Notable attachments">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {p.attachments.map((a, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13 }}>{a}</span>
-                {canEdit && <button onClick={() => set('attachments', p.attachments.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 15 }}>×</button>}
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
+      <Section label="Notable attachments">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {p.attachments.map((a, i) => (
+            <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13 }}>{a}</span>
+              {canEdit && <button onClick={() => set('attachments', p.attachments.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 15 }}>×</button>}
+            </div>
+          ))}
+        </div>
+        {canEdit && (addingAttach
+          ? <div style={{ display: 'flex', gap: 8 }}>
+              <input placeholder="Name (e.g. Madison Wolfe, Director)" value={newAttach} onChange={e => setNewAttach(e.target.value)} style={{ ...inp, flex: 1 }} />
+              <button onClick={() => { if (newAttach.trim()) { set('attachments', [...p.attachments, newAttach.trim()]); setNewAttach(''); setAddingAttach(false) } }} style={btnStyle('#6ab87a')}>Add</button>
+              <button onClick={() => setAddingAttach(false)} style={btnStyle('rgba(255,255,255,0.3)')}>Cancel</button>
+            </div>
+          : <button onClick={() => setAddingAttach(true)} style={btnStyle('#b8b8c8')}>+ Add attachment</button>
+        )}
+      </Section>
 
       {(canEdit || canEditDistribution) && (
         <Section label="Distribution & sales">
@@ -167,9 +181,8 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
             </div>
           ))}
         </div>
-        {(canEdit || canEditFestivals) && (
-          addingFest ? (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {(canEdit || canEditFestivals) && (addingFest
+          ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <input placeholder="Festival name" value={newFest.name} onChange={e => setNewFest(f => ({ ...f, name: e.target.value }))} style={{ ...inp, flex: 1 }} />
               <select value={newFest.status} onChange={e => setNewFest(f => ({ ...f, status: e.target.value }))} style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.88)', padding: '8px 12px', fontSize: 13, outline: 'none' }}>
                 {['target','submitted','accepted','rejected','official'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -177,72 +190,100 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
               <button onClick={() => { if (newFest.name.trim()) { set('festivals', [...p.festivals, { ...newFest }]); setNewFest({ name: '', status: 'target' }); setAddingFest(false) } }} style={btnStyle('#6ab87a')}>Add</button>
               <button onClick={() => setAddingFest(false)} style={btnStyle('rgba(255,255,255,0.3)')}>Cancel</button>
             </div>
-          ) : <button onClick={() => setAddingFest(true)} style={btnStyle('#b06080')}>+ Add festival</button>
+          : <button onClick={() => setAddingFest(true)} style={btnStyle('#b06080')}>+ Add festival</button>
         )}
       </Section>
 
-      {p.notes && (
-        <Section label="Notes">
-          {canEdit
-            ? <textarea value={p.notes} onChange={e => set('notes', e.target.value)} rows={4} style={{ ...inp, resize: 'vertical', lineHeight: 1.7, color: 'rgba(255,255,255,0.6)' }} />
-            : <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{p.notes}</div>
-          }
-        </Section>
-      )}
+      <Section label="Notes">
+        {canEdit
+          ? <textarea value={p.notes} onChange={e => set('notes', e.target.value)} rows={4} placeholder="Free-form notes, ideas, reminders..." style={{ ...inp, resize: 'vertical', lineHeight: 1.7, color: 'rgba(255,255,255,0.6)' }} />
+          : p.notes ? <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{p.notes}</div> : null
+        }
+      </Section>
 
-      {canEdit && <button onClick={() => { onSave?.(p); onBack() }} style={{ background: 'rgba(184,184,200,0.1)', border: '0.5px solid rgba(184,184,200,0.3)', borderRadius: 8, color: '#b8b8c8', padding: '10px 28px', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>Save changes</button>}
+      {canEdit && <button onClick={() => { onSave?.(p); onBack() }} style={{ background: 'rgba(184,184,200,0.1)', border: '0.5px solid rgba(184,184,200,0.3)', borderRadius: 8, color: '#b8b8c8', padding: '10px 28px', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>{isNew ? 'Create project' : 'Save changes'}</button>}
     </div>
   )
 }
 
 export default function Productions({ profile, projects, onSave }: { profile: Profile; projects: Project[]; onSave?: (p: Project[]) => void }) {
   const [open, setOpen] = useState<string | null>(null)
+  const [addingNew, setAddingNew] = useState(false)
   const isAdmin = profile.role === 'admin'
   const canEditFest = can(profile.role, 'canEditFestivals') as boolean
   const canEditDist = can(profile.role, 'canEditDistribution') as boolean
 
+  if (addingNew && isAdmin) {
+    const newProject: Project = {
+      ...EMPTY_PROJECT,
+      id: `proj_${Date.now()}`,
+    }
+    return <ProjectProfile
+      project={newProject}
+      onBack={() => setAddingNew(false)}
+      onSave={(p) => { onSave?.([...projects, p]); setAddingNew(false) }}
+      canEdit={true}
+      canEditFestivals={true}
+      canEditDistribution={true}
+      isNew={true}
+    />
+  }
+
   if (open) {
     const proj = projects.find(p => p.id === open)!
-    return <ProjectProfile project={proj} onBack={() => setOpen(null)} onSave={isAdmin ? (updated) => onSave?.(projects.map(p => p.id === updated.id ? updated : p)) : undefined} canEdit={isAdmin} canEditFestivals={canEditFest} canEditDistribution={canEditDist} />
+    return <ProjectProfile
+      project={proj}
+      onBack={() => setOpen(null)}
+      onSave={isAdmin ? (updated) => onSave?.(projects.map(p => p.id === updated.id ? updated : p)) : undefined}
+      canEdit={isAdmin}
+      canEditFestivals={canEditFest}
+      canEditDistribution={canEditDist}
+    />
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {projects.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No productions yet.</div>
-      )}
-      {projects.map(p => {
-        const ph = STAGE_COLORS[p.currentStage] || STAGE_COLORS['Development']
-        const pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0
-        return (
-          <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '18px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 14 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, background: ph.bg, color: ph.text, border: `0.5px solid ${ph.border}`, borderRadius: 4, padding: '2px 8px' }}>{p.currentStage}</span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{p.genre}</span>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ fontSize: 18, fontWeight: 500 }}>Productions</div>
+        {isAdmin && <button onClick={() => setAddingNew(true)} style={{ background: 'rgba(106,184,122,0.12)', border: '0.5px solid rgba(106,184,122,0.3)', borderRadius: 8, color: '#6ab87a', padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>+ New project</button>}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {projects.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No productions yet. Add your first project!</div>
+        )}
+        {projects.map(p => {
+          const ph = STAGE_COLORS[p.currentStage] || STAGE_COLORS['Development']
+          const pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0
+          return (
+            <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '18px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, background: ph.bg, color: ph.text, border: `0.5px solid ${ph.border}`, borderRadius: 4, padding: '2px 8px' }}>{p.currentStage}</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{p.genre}</span>
+                  </div>
                 </div>
+                <button onClick={() => setOpen(p.id)} style={{ background: 'rgba(184,184,200,0.07)', border: '0.5px solid rgba(184,184,200,0.2)', borderRadius: 6, color: '#b8b8c8', padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>View →</button>
               </div>
-              <button onClick={() => setOpen(p.id)} style={{ background: 'rgba(184,184,200,0.07)', border: '0.5px solid rgba(184,184,200,0.2)', borderRadius: 6, color: '#b8b8c8', padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>View →</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
-              {[['Budget goal', fmt(p.budget), '#b89060'], ['Shoot start', p.shootStart || 'TBD', 'rgba(255,255,255,0.7)'], ['Shoot wrap', p.shootWrap || 'TBD', 'rgba(255,255,255,0.7)'], ['Festivals', `${p.festivals.length} targets`, '#b06080']].map(([l, v, c]) => (
-                <div key={l as string} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '9px 12px' }}>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 3 }}>{l}</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: c as string }}>{v}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+                {[['Budget goal', fmt(p.budget), '#b89060'], ['Shoot start', p.shootStart || 'TBD', 'rgba(255,255,255,0.7)'], ['Shoot wrap', p.shootWrap || 'TBD', 'rgba(255,255,255,0.7)'], ['Festivals', `${p.festivals.length} targets`, '#b06080']].map(([l, v, c]) => (
+                  <div key={l as string} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '9px 12px' }}>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 3 }}>{l}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: c as string }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 5 }}>
+                  <span>Budget raised</span><span>{pct}%</span>
                 </div>
-              ))}
-            </div>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 5 }}>
-                <span>Budget raised</span><span>{pct}%</span>
+                <ProgressBar pct={pct} color="#b89060" />
               </div>
-              <ProgressBar pct={pct} color="#b89060" />
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
