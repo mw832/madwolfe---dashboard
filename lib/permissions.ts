@@ -16,7 +16,7 @@ export const PERMISSIONS = {
     canSeeNorthStar: true,
   },
   kaleigh: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news', 'recommendations'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news'],
     canEditProductions: false,
     canEditGoals: false,
     canEditFinances: false,
@@ -30,7 +30,7 @@ export const PERMISSIONS = {
     canSeeNorthStar: false,
   },
   grecia: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news', 'recommendations'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news'],
     canEditProductions: false,
     canEditGoals: false,
     canEditFinances: false,
@@ -44,7 +44,7 @@ export const PERMISSIONS = {
     canSeeNorthStar: false,
   },
   meghan: {
-    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news', 'recommendations'],
+    tabs: ['overview', 'productions', 'goals', 'mytasks', 'news'],
     canEditProductions: false,
     canEditGoals: false,
     canEditFinances: false,
@@ -66,3 +66,4 @@ export function can(role: Role, permission: keyof typeof PERMISSIONS['admin']) {
 export function getTabs(role: Role) {
   return (PERMISSIONS[role]?.tabs ?? []) as string[]
 }
+
