@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const PROMPTS: Record<string, string> = {
-  home: 'Give me 6 important film industry news stories or trends from May 2026. Cover: indie financing, streaming, festivals, distribution, social media trends for filmmakers, grants. Rank by importance. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Industry|Streaming|Distribution|Festival|Social|Funding","importance":"high|medium"}]',
-  industry: 'Give me 5 important independent film industry news stories or trends from May 2026. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Industry"}]',
-  streaming: 'Give me 5 important streaming platform news stories from May 2026 relevant to indie filmmakers. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Streaming"}]',
-  distribution: 'Give me 5 important indie film distribution news stories or trends from May 2026. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Distribution"}]',
-  social: 'Give me 5 important social media trends from May 2026 relevant to indie filmmakers on TikTok, Instagram, YouTube. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Social"}]',
-  gear: 'Give me 5 important film gear and stock news from May 2026. Kodak, Fuji, cameras, rental trends. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Gear"}]',
-  festivals: 'Give me 5 important film festival news stories from May 2026. Sundance, SXSW, Tribeca, NOFF, deadlines. Return ONLY a JSON array no markdown: [{git add .
-git commit -m "remove web search tool from news api"
-git push
-cat > app/api/news/route.ts << 'EOF'
-import { NextRequest, NextResponse } from 'next/server'
-
-const PROMPTS: Record<string, string> = {
-  home: 'Give me 6 important film industry news stories or trends from May 2026. Cover: indie financing, streaming, festivals, distribution, social media trends for filmmakers, grants. Rank by importance. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Industry|Streaming|Distribution|Festival|Social|Funding","importance":"high|medium"}]',
-  industry: 'Give me 5 important independent film industry news stories or trends from May 2026. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Industry"}]',
-  streaming: 'Give me 5 important streaming platform news stories from May 2026 relevant to indie filmmakers. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Streaming"}]',
-  distribution: 'Give me 5 important indie film distribution news stories or trends from May 2026. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Distribution"}]',
-  social: 'Give me 5 important social media trends from May 2026 relevant to indie filmmakers on TikTok, Instagram, YouTube. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Social"}]',
-  gear: 'Give me 5 important film gear and stock news from May 2026. Kodak, Fuji, cameras, rental trends. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Gear"}]',
-  festivals: 'Give me 5 important film festival news stories from May 2026. Sundance, SXSW, Tribeca, NOFF, deadlines. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Festival"}]',
-  funding: 'Give me 5 important film grants and funding opportunities from May 2026. Return ONLY a JSON array no markdown: [{"headline":"...","summary":"2 sentences","category":"Funding"}]',
+  home: 'Give me 6 important film industry news stories or trends from May 2026. Cover indie financing, streaming, festivals, distribution, social media trends for filmmakers, grants. Rank by importance. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Industry","importance":"high"}]',
+  industry: 'Give me 5 important independent film industry news stories or trends from May 2026. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Industry"}]',
+  streaming: 'Give me 5 important streaming platform news stories from May 2026 relevant to indie filmmakers. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Streaming"}]',
+  distribution: 'Give me 5 important indie film distribution news stories from May 2026. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Distribution"}]',
+  social: 'Give me 5 important social media trends from May 2026 for indie filmmakers on TikTok Instagram YouTube. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Social"}]',
+  gear: 'Give me 5 important film gear and stock news from May 2026. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Gear"}]',
+  festivals: 'Give me 5 important film festival news from May 2026. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Festival"}]',
+  funding: 'Give me 5 important film grants and funding opportunities from May 2026. Return ONLY a JSON array no markdown no preamble: [{"headline":"...","summary":"2 sentences","category":"Funding"}]',
 }
 
 export const runtime = 'nodejs'
