@@ -32,6 +32,15 @@ const EMPTY_PROJECT: Omit<Project, 'id'> = {
   salesAgent: '', distributor: '', attachments: [], festivals: [], links: [], notes: ''
 }
 
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>{label}</div>
+      {children}
+    </div>
+  )
+}
+
 function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, canEditDistribution, isNew }: {
   project: Project; onBack: () => void; onSave?: (p: Project) => void
   canEdit: boolean; canEditFestivals: boolean; canEditDistribution: boolean; isNew?: boolean
@@ -47,12 +56,7 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
   const ph = STAGE_COLORS[p.currentStage] || STAGE_COLORS['Development']
   const stageIdx = STAGES.indexOf(p.currentStage)
 
-  const Section = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>{label}</div>
-      {children}
-    </div>
-  )
+
 
   return (
     <div>
