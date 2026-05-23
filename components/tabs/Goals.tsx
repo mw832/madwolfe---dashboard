@@ -23,12 +23,45 @@ function StatCard({ label, value, sub, color = '#b8b8c8' }: { label: string; val
   )
 }
 
-export default function Goals({ profile, goals, onSave }: { profile: Profile; goals: Goal[]; onSave?: (g: Goal[]) => void }) {
+function getSmartProgress(goal: Goal, finances?: any): number {
+  if (goal.category === 'revenue' && finances) {
+    const revenue = finances?.revenue ?? []
+    const expenses = finances?.expenses ?? []
+    const net = revenue.reduce((s: number, r: any) => s + r.amount, 0) - expenses.reduce((s: number, e: any) => s + e.amount, 0)
+    if (goal.objective.includes('$25k') || goal.objective.includes('threshold')) {
+      return Math.min(Math.round((net / 25000) * 100), 100)
+    }
+  }
+  return goal.progress
+}
+
+function getTimeHorizon(target: string): 'quarter' | 'year' | 'fiveyear' {
+  const t = target.toLowerCase()
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentQuarter = Math.ceil((now.getMonth() + 1) / 3)
+  if (t.includes('2030') || t.includes('2029') || t.includes('2028')) return 'fiveyear'
+  if (t.includes('2027')) return 'year'
+  if (t.includes('2026')) {
+    const qMatch = t.match(/q(\d)/)
+    if (qMatch) {
+      const targetQ = parseInt(qMatch[1])
+      if (targetQ <= currentQuarter + 1) return 'quarter'
+    }
+    return 'quarter'
+  }
+  return 'year'
+}
+
+export default function Goals({ profile, goals, onSave, finances }: {
+  profile: Profile; goals: Goal[]; onSave?: (g: Goal[]) => void; finances?: any
+}) {
   const [localGoals, setLocalGoals] = useState(goals)
   const [adding, setAdding] = useState(false)
   const [newGoal, setNewGoal] = useState({ objective: '', target: '', category: 'film' })
+  const [timeFilter, setTimeFilter] = useState<'all' | 'quarter' | 'year' | 'fiveyear'>('all')
   const isAdmin = profile.role === 'admin'
-  const avgOKR = localGoals.length ? Math.round(localGoals.reduce((s, g) => s + g.progress, 0) / localGoals.length) : 0
+  const avgOKR = localGoals.length ? Math.round(localGoals.reduce((s, g) => s + getSmartProgress(g, finances), 0) / localGoals.length) : 0
 
   const inp = { background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.88)', padding: '8px 12px', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }
   const btnStyle = (c: string) => ({ background: `${c}15`, border: `0.5px solid ${c}40`, borderRadius: 6, color: c, padding: '6px 14px', cursor: 'pointer', fontSize: 12 })
@@ -55,16 +88,39 @@ export default function Goals({ profile, goals, onSave }: { profile: Profile; go
     onSave?.(updated)
   }
 
+  const filteredGoals = timeFilter === 'all' ? localGoals : localGoals.filter(g => getTimeHorizon(g.target) === timeFilter)
+
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
         <StatCard label="Milestones" value={localGoals.length} />
         <StatCard label="Avg progress" value={`${avgOKR}%`} color="#6a90b8" />
         <StatCard label="North star" value="$750k" sub="Annual revenue by 2030" color="#b8b8c8" />
         <StatCard label="Salary target" value="$90k" sub="Each — 4 person team" color="#6ab87a" />
       </div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        {[['all','All'], ['quarter','This Quarter'], ['year','This Year'], ['fiveyear','5-Year']].map(([id, label]) => (
+          <button key={id} onClick={() => setTimeFilter(id as any)} style={{
+            background: timeFilter === id ? 'rgba(184,184,200,0.1)' : 'rgba(255,255,255,0.03)',
+            border: `0.5px solid ${timeFilter === id ? '#b8b8c8' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 20, color: timeFilter === id ? '#b8b8c8' : 'rgba(255,255,255,0.4)',
+            padding: '5px 16px', cursor: 'pointer', fontSize: 12, fontWeight: timeFilter === id ? 500 : 400
+          }}>{label}</button>
+        ))}
+        <div style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+          {filteredGoals.length} milestone{filteredGoals.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {filteredGoals.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
+          No milestones in this time range.
+        </div>
+      )}
+
       {['film', 'distribution', 'marketing', 'revenue', 'company'].map(cat => {
-        const catGoals = localGoals.filter(g => g.category === cat)
+        const catGoals = filteredGoals.filter(g => g.category === cat)
         if (!catGoals.length) return null
         const col = CAT_COLORS[cat]
         return (
@@ -74,33 +130,41 @@ export default function Goals({ profile, goals, onSave }: { profile: Profile; go
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{CAT_LABELS[cat]}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {catGoals.map(g => (
-                <div key={g.id} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{g.objective}</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{g.target}</div>
-                    {isAdmin && <button onClick={() => deleteGoal(g.id)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 14 }}>×</button>}
+              {catGoals.map(g => {
+                const smartPct = getSmartProgress(g, finances)
+                const isAutoCalc = smartPct !== g.progress
+                return (
+                  <div key={g.id} style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{g.objective}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {isAutoCalc && <span style={{ fontSize: 10, color: col, background: `${col}15`, borderRadius: 4, padding: '1px 6px' }}>auto</span>}
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{g.target}</div>
+                      </div>
+                      {isAdmin && <button onClick={() => deleteGoal(g.id)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 14 }}>×</button>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {isAdmin && !isAutoCalc
+                        ? <input type="range" min={0} max={100} value={g.progress} onChange={e => updateProgress(g.id, +e.target.value)} style={{ flex: 1, accentColor: col }} />
+                        : <div style={{ flex: 1 }}><ProgressBar pct={smartPct} color={col} /></div>
+                      }
+                      <span style={{ fontSize: 13, fontWeight: 500, minWidth: 36, color: smartPct >= 66 ? '#6ab87a' : smartPct >= 33 ? '#b89060' : 'rgba(255,255,255,0.4)' }}>{smartPct}%</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {isAdmin
-                      ? <input type="range" min={0} max={100} value={g.progress} onChange={e => updateProgress(g.id, +e.target.value)} style={{ flex: 1, accentColor: col }} />
-                      : <div style={{ flex: 1 }}><ProgressBar pct={g.progress} color={col} /></div>
-                    }
-                    <span style={{ fontSize: 13, fontWeight: 500, minWidth: 36, color: g.progress >= 66 ? '#6ab87a' : g.progress >= 33 ? '#b89060' : 'rgba(255,255,255,0.4)' }}>{g.progress}%</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )
       })}
+
       {isAdmin && (
         adding ? (
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 16, marginTop: 8 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input placeholder="Milestone description" value={newGoal.objective} onChange={e => setNewGoal(g => ({ ...g, objective: e.target.value }))} style={{ ...inp, width: '100%' }} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <input placeholder="Target (e.g. Q3 2026)" value={newGoal.target} onChange={e => setNewGoal(g => ({ ...g, target: e.target.value }))} style={{ ...inp, flex: 1 }} />
+                <input placeholder="Target (e.g. Q3 2026, 2027, 2030)" value={newGoal.target} onChange={e => setNewGoal(g => ({ ...g, target: e.target.value }))} style={{ ...inp, flex: 1 }} />
                 <select value={newGoal.category} onChange={e => setNewGoal(g => ({ ...g, category: e.target.value }))} style={inp}>
                   {['film','distribution','marketing','revenue','company'].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -113,6 +177,7 @@ export default function Goals({ profile, goals, onSave }: { profile: Profile; go
           </div>
         ) : <button onClick={() => setAdding(true)} style={{ ...btnStyle('#b8b8c8'), marginTop: 8 }}>+ Add milestone</button>
       )}
+
       <div style={{ marginTop: 28, background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '16px 18px' }}>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em' }}>5-year vision — end of 2030</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>

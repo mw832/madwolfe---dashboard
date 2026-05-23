@@ -2,9 +2,13 @@
 import { useState } from 'react'
 import type { Profile, UserTask, Project } from '@/lib/types'
 
-const TYPE_COLORS: Record<string, string> = { legal: '#b89060', film: '#6ab87a', distribution: '#6a90b8', festival: '#b06080', marketing: '#8878b0' }
+const TYPE_COLORS: Record<string, string> = {
+  legal: '#b89060', film: '#6ab87a', distribution: '#6a90b8',
+  festival: '#b06080', marketing: '#8878b0', company: '#b8b8c8', coordination: '#7ab8b8'
+}
 const PRI_COLORS: Record<number, string> = { 1: '#c06060', 2: '#b89060', 3: '#6a90b8' }
 const PRI_LABELS: Record<number, string> = { 1: 'Urgent', 2: 'Normal', 3: 'Low' }
+const TASK_TYPES = ['film', 'distribution', 'marketing', 'festival', 'legal', 'company', 'coordination']
 
 function TaskRow({ task, onToggle, onDelete, projects }: { task: UserTask; onToggle: () => void; onDelete: () => void; projects: Project[] }) {
   const tc = TYPE_COLORS[task.type] || '#b8b8c8'
@@ -71,7 +75,7 @@ export default function MyTasks({ profile, tasks, onToggle, onDelete, onAdd, pro
                 {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
               </select>
               <select value={newTask.type} onChange={e => setNewTask(t => ({ ...t, type: e.target.value }))} style={inp}>
-                {['film','distribution','marketing','festival','legal'].map(x => <option key={x} value={x}>{x}</option>)}
+                {TASK_TYPES.map(x => <option key={x} value={x}>{x}</option>)}
               </select>
               <select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: +e.target.value }))} style={inp}>
                 <option value={1}>Urgent</option><option value={2}>Normal</option><option value={3}>Low</option>

@@ -127,7 +127,7 @@ export default function Dashboard({
         <div style={{ padding: '28px 28px', maxWidth: 1100, margin: '0 auto' }}>
           {active === 'overview' && <Overview profile={profile} projects={projects} goals={goals} userTasks={userTasks} />}
           {active === 'productions' && <Productions profile={profile} projects={projects} onSave={isAdmin ? saveProjects : undefined} />}
-          {active === 'goals' && <Goals profile={profile} goals={goals} onSave={isAdmin ? saveGoals : undefined} />}
+          {active === 'goals' && <Goals profile={profile} goals={goals} onSave={isAdmin ? saveGoals : undefined} finances={finances} />}
           {active === 'mytasks' && <MyTasks profile={profile} tasks={userTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAdd={(t) => addUserTask({ ...t, assigned_to: profile.id, assigned_by: profile.id, private: false })} projects={projects} />}
           {active === 'teamtasks' && isAdmin && <TeamTasks profile={profile} allProfiles={allProfiles} allUserTasks={allUserTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAssign={(task) => addUserTask(task)} projects={projects} companyTasks={companyTasks} onSaveCompanyTasks={saveCompanyTasks} />}
           {active === 'finances' && isAdmin && <Finances finances={finances} onSave={saveFinances} projects={projects} />}

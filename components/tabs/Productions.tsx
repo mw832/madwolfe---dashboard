@@ -102,16 +102,16 @@ function ProjectProfile({ project, onBack, onSave, canEdit, canEditFestivals, ca
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Budget — {fmt(p.spent)} spent of {fmt(p.budget)}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Budget raised — {fmt(p.spent)} of {fmt(p.budget)} goal</div>
           <ProgressBar pct={Math.round((p.spent / p.budget) * 100)} color="#b89060" />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 5 }}>
-            <span>{Math.round((p.spent / p.budget) * 100)}% spent</span>
+            <span>{Math.round((p.spent / p.budget) * 100)}% raised</span>
             <span>{fmt(p.budget - p.spent)} remaining</span>
           </div>
           {canEdit && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
-              <div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Total budget</div><input type="number" value={p.budget} onChange={e => set('budget', +e.target.value)} style={inp} /></div>
-              <div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Spent to date</div><input type="number" value={p.spent} onChange={e => set('spent', +e.target.value)} style={inp} /></div>
+              <div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Budget goal</div><input type="number" value={p.budget} onChange={e => set('budget', +e.target.value)} style={inp} /></div>
+              <div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 5 }}>Raised to date</div><input type="number" value={p.spent} onChange={e => set('spent', +e.target.value)} style={inp} /></div>
             </div>
           )}
         </div>
@@ -209,7 +209,7 @@ export default function Productions({ profile, projects, onSave }: { profile: Pr
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {projects.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No productions yet. Add one from the admin dashboard.</div>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No productions yet.</div>
       )}
       {projects.map(p => {
         const ph = STAGE_COLORS[p.currentStage] || STAGE_COLORS['Development']
@@ -227,7 +227,7 @@ export default function Productions({ profile, projects, onSave }: { profile: Pr
               <button onClick={() => setOpen(p.id)} style={{ background: 'rgba(184,184,200,0.07)', border: '0.5px solid rgba(184,184,200,0.2)', borderRadius: 6, color: '#b8b8c8', padding: '6px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>View →</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
-              {[['Budget', fmt(p.budget), '#b89060'], ['Shoot start', p.shootStart || 'TBD', 'rgba(255,255,255,0.7)'], ['Shoot wrap', p.shootWrap || 'TBD', 'rgba(255,255,255,0.7)'], ['Festivals', `${p.festivals.length} targets`, '#b06080']].map(([l, v, c]) => (
+              {[['Budget goal', fmt(p.budget), '#b89060'], ['Shoot start', p.shootStart || 'TBD', 'rgba(255,255,255,0.7)'], ['Shoot wrap', p.shootWrap || 'TBD', 'rgba(255,255,255,0.7)'], ['Festivals', `${p.festivals.length} targets`, '#b06080']].map(([l, v, c]) => (
                 <div key={l as string} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '9px 12px' }}>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 3 }}>{l}</div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: c as string }}>{v}</div>
@@ -236,7 +236,7 @@ export default function Productions({ profile, projects, onSave }: { profile: Pr
             </div>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 5 }}>
-                <span>Budget spent</span><span>{pct}%</span>
+                <span>Budget raised</span><span>{pct}%</span>
               </div>
               <ProgressBar pct={pct} color="#b89060" />
             </div>
