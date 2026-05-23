@@ -1,122 +1,140 @@
 'use client'
 import { useState } from 'react'
-import type { Profile, UserTask, Project } from '@/lib/types'
+import { createClient } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import type { Profile, Project, Goal, UserTask, FinanceEntry } from '@/lib/types'
+import { getTabs, can } from '@/lib/permissions'
+import Overview from './tabs/Overview'
+import Productions from './tabs/Productions'
+import Goals from './tabs/Goals'
+import MyTasks from './tabs/MyTasks'
+import TeamTasks from './tabs/TeamTasks'
+import Finances from './tabs/Finances'
+import Team from './tabs/Team'
+import News from './tabs/News'
 
-const TYPE_COLORS: Record<string, string> = {
-  legal: '#b89060', film: '#6ab87a', distribution: '#6a90b8',
-  festival: '#b06080', marketing: '#8878b0', company: '#b8b8c8', coordination: '#7ab8b8'
+const TAB_LABELS: Record<string, string> = {
+  overview: 'Overview',
+  productions: 'Productions',
+  goals: 'Goals',
+  mytasks: 'My Tasks',
+  teamtasks: 'Team Tasks',
+  finances: 'Finances',
+  team: 'Team',
+  news: 'Industry News',
 }
-const PRI_COLORS: Record<number, string> = { 1: '#c06060', 2: '#b89060', 3: '#6a90b8' }
-const PRI_LABELS: Record<number, string> = { 1: 'Urgent', 2: 'Normal', 3: 'Low' }
-const TASK_TYPES = ['film', 'distribution', 'marketing', 'festival', 'legal', 'coordination']
 
-export default function TeamTasks({ profile, allProfiles, allUserTasks, onToggle, onDelete, onAssign, projects }: {
-  profile: Profile; allProfiles: Profile[]; allUserTasks: UserTask[]
-  onToggle: (id: string) => void; onDelete: (id: string) => void
-  onAssign: (t: any) => void; projects: Project[]
-}) {
-  const [selectedUser, setSelectedUser] = useState<string>(allProfiles.find(p => p.role !== 'admin')?.id || '')
-  const [assigning, setAssigning] = useState(false)
-  const [newTask, setNewTask] = useState({ title: '', date: '', type: 'film', priority: 2, project: '' })
+interface Props {
+  profile: Profile
+  allProfiles: Profile[]
+  initialProjects: Project[]
+  initialGoals: Goal[]
+  initialUserTasks: UserTask[]
+  initialAllUserTasks: UserTask[]
+  initialFinances: { revenue: FinanceEntry[]; expenses: FinanceEntry[] } | null
+  initialCompanyTasks: any[]
+}
 
-  const nonAdminProfiles = allProfiles.filter(p => p.role !== 'admin')
-  const userTasksForSelected = allUserTasks.filter(t => t.assigned_to === selectedUser && !t.done)
-  const doneTasksForSelected = allUserTasks.filter(t => t.assigned_to === selectedUser && t.done)
+export default function Dashboard({
+  profile, allProfiles, initialProjects, initialGoals,
+  initialUserTasks, initialAllUserTasks, initialFinances, initialCompanyTasks
+}: Props) {
+  const [active, setActive] = useState('overview')
+  const [projects, setProjects] = useState<Project[]>(initialProjects)
+  const [goals, setGoals] = useState<Goal[]>(initialGoals)
+  const [userTasks, setUserTasks] = useState<UserTask[]>(initialUserTasks)
+  const [allUserTasks, setAllUserTasks] = useState<UserTask[]>(initialAllUserTasks)
+  const [finances, setFinances] = useState(initialFinances)
+  const [companyTasks, setCompanyTasks] = useState(initialCompanyTasks)
+  const router = useRouter()
+  const supabase = createClient()
+  const tabs = getTabs(profile.role)
+  const isAdmin = profile.role === 'admin'
 
-  const inp = { background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'rgba(255,255,255,0.88)', padding: '8px 12px', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }
-  const btnStyle = (c: string) => ({ background: `${c}15`, border: `0.5px solid ${c}40`, borderRadius: 6, color: c, padding: '6px 14px', cursor: 'pointer', fontSize: 12 })
+  async function saveProjects(updated: Project[]) {
+    setProjects(updated)
+    await supabase.from('projects').update({ data: { projects: updated }, updated_at: new Date().toISOString() }).eq('id', 'main')
+  }
 
-  function TaskRow({ task }: { task: UserTask }) {
-    const tc = TYPE_COLORS[task.type] || '#b8b8c8'
-    const proj = projects.find(p => p.id === task.project)
-    return (
-      <div style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)', borderLeft: `2px solid ${tc}`, borderRadius: '0 10px 10px 0', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, opacity: task.done ? 0.5 : 1 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: task.done ? 'line-through' : 'none' }}>{task.title}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {proj && <span style={{ fontSize: 10, color: '#6a90b8', background: 'rgba(106,144,184,0.12)', borderRadius: 4, padding: '1px 6px' }}>{proj.title}</span>}
-            <span style={{ fontSize: 10, color: tc, background: `${tc}15`, borderRadius: 4, padding: '1px 6px' }}>{task.type}</span>
-            <span style={{ fontSize: 10, color: PRI_COLORS[task.priority], background: `${PRI_COLORS[task.priority]}15`, borderRadius: 4, padding: '1px 6px' }}>{PRI_LABELS[task.priority]}</span>
-            {task.date && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{task.date}</span>}
-          </div>
-        </div>
-        <button onClick={() => onDelete(task.id)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</button>
-      </div>
-    )
+  async function saveGoals(updated: Goal[]) {
+    setGoals(updated)
+    await supabase.from('goals').update({ data: { goals: updated }, updated_at: new Date().toISOString() }).eq('id', 1)
+  }
+
+  async function saveFinances(updated: any) {
+    setFinances(updated)
+    await supabase.from('finances').update({ data: updated, updated_at: new Date().toISOString() }).eq('id', 1)
+  }
+
+  async function saveCompanyTasks(updated: any[]) {
+    setCompanyTasks(updated)
+    await supabase.from('company_tasks').update({ data: { tasks: updated }, updated_at: new Date().toISOString() }).eq('id', 1)
+  }
+
+  async function addUserTask(task: Omit<UserTask, 'id' | 'created_at'>) {
+    const { data } = await supabase.from('user_tasks').insert(task).select().single()
+    if (data) {
+      if (task.assigned_to === profile.id) setUserTasks(t => [data, ...t])
+      if (isAdmin) setAllUserTasks(t => [data, ...t])
+    }
+  }
+
+  async function toggleUserTask(id: string) {
+    const task = userTasks.find(t => t.id === id) || allUserTasks.find(t => t.id === id)
+    if (!task) return
+    await supabase.from('user_tasks').update({ done: !task.done }).eq('id', id)
+    setUserTasks(ts => ts.map(t => t.id === id ? { ...t, done: !t.done } : t))
+    if (isAdmin) setAllUserTasks(ts => ts.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  }
+
+  async function deleteUserTask(id: string) {
+    await supabase.from('user_tasks').delete().eq('id', id)
+    setUserTasks(ts => ts.filter(t => t.id !== id))
+    if (isAdmin) setAllUserTasks(ts => ts.filter(t => t.id !== id))
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    router.push('/login')
   }
 
   return (
-    <div>
-      <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Team Tasks</div>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 24 }}>Assign and manage tasks for your team</div>
-
-      {/* Person selector */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        {nonAdminProfiles.map(p => (
-          <button key={p.id} onClick={() => setSelectedUser(p.id)} style={{
-            background: selectedUser === p.id ? 'rgba(184,184,200,0.1)' : 'rgba(255,255,255,0.03)',
-            border: `0.5px solid ${selectedUser === p.id ? '#b8b8c8' : 'rgba(255,255,255,0.1)'}`,
-            borderRadius: 8, color: selectedUser === p.id ? '#b8b8c8' : 'rgba(255,255,255,0.5)',
-            padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: selectedUser === p.id ? 500 : 400
-          }}>{p.name.split(' ')[0]}</button>
-        ))}
-      </div>
-
-      {selectedUser && (
-        <div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>
-            {userTasksForSelected.length} pending · {doneTasksForSelected.length} completed — {nonAdminProfiles.find(p => p.id === selectedUser)?.name}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 20 }}>
-            {userTasksForSelected.length === 0 && !assigning && (
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', padding: '20px 0' }}>No pending tasks. Assign one below!</div>
-            )}
-            {userTasksForSelected.map(t => <TaskRow key={t.id} task={t} />)}
-          </div>
-
-          {assigning ? (
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <input placeholder="Task description" value={newTask.title} onChange={e => setNewTask(t => ({ ...t, title: e.target.value }))} style={{ ...inp, width: '100%' }} />
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <input type="date" value={newTask.date} onChange={e => setNewTask(t => ({ ...t, date: e.target.value }))} style={{ ...inp, flex: 1 }} />
-                  <select value={newTask.project} onChange={e => setNewTask(t => ({ ...t, project: e.target.value }))} style={inp}>
-                    <option value="">No project</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                  </select>
-                  <select value={newTask.type} onChange={e => setNewTask(t => ({ ...t, type: e.target.value }))} style={inp}>
-                    {TASK_TYPES.map(x => <option key={x} value={x}>{x}</option>)}
-                  </select>
-                  <select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: +e.target.value }))} style={inp}>
-                    <option value={1}>Urgent</option><option value={2}>Normal</option><option value={3}>Low</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => {
-                    if (!newTask.title.trim()) return
-                    onAssign({ ...newTask, assigned_to: selectedUser, assigned_by: profile.id, private: false })
-                    setNewTask({ title: '', date: '', type: 'film', priority: 2, project: '' })
-                    setAssigning(false)
-                  }} style={btnStyle('#6ab87a')}>Assign task</button>
-                  <button onClick={() => setAssigning(false)} style={btnStyle('rgba(255,255,255,0.3)')}>Cancel</button>
-                </div>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: 'rgba(255,255,255,0.88)', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 100% 40% at 50% 0%, rgba(100,80,120,0.06) 0%, transparent 60%)', zIndex: 0 }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ borderBottom: '0.5px solid rgba(255,255,255,0.07)', padding: '0 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(184,184,200,0.08)', border: '0.5px solid rgba(184,184,200,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#b8b8c8', fontWeight: 500 }}>MW</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: '#b8b8c8' }}>MadWolfe Productions</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Internal Dashboard</div>
               </div>
             </div>
-          ) : (
-            <button onClick={() => setAssigning(true)} style={btnStyle('#b8b8c8')}>+ Assign task</button>
-          )}
-
-          {doneTasksForSelected.length > 0 && (
-            <div style={{ marginTop: 28 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Completed ({doneTasksForSelected.length})</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {doneTasksForSelected.map(t => <TaskRow key={t.id} task={t} />)}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{profile.name}</div>
+              <button onClick={signOut} style={{ background: 'transparent', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'rgba(255,255,255,0.3)', padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}>Sign out</button>
             </div>
-          )}
+          </div>
+          <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
+            {tabs.map(id => (
+              <button key={id} onClick={() => setActive(id)} style={{ background: active === id ? 'rgba(184,184,200,0.07)' : 'transparent', border: 'none', borderBottom: active === id ? '1.5px solid #b8b8c8' : '1.5px solid transparent', color: active === id ? '#b8b8c8' : 'rgba(255,255,255,0.35)', padding: '10px 16px', fontSize: 13, fontWeight: active === id ? 500 : 400, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color 0.15s' }}>
+                {TAB_LABELS[id]}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+        <div style={{ padding: '28px 28px', maxWidth: 1100, margin: '0 auto' }}>
+          {active === 'overview' && <Overview profile={profile} projects={projects} goals={goals} userTasks={userTasks} />}
+          {active === 'productions' && <Productions profile={profile} projects={projects} onSave={isAdmin ? saveProjects : undefined} />}
+          {active === 'goals' && <Goals profile={profile} goals={goals} onSave={isAdmin ? saveGoals : undefined} finances={finances} />}
+          {active === 'mytasks' && <MyTasks profile={profile} tasks={userTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAdd={(t: any) => addUserTask({ ...t, assigned_to: profile.id, assigned_by: profile.id, private: false })} projects={projects} />}
+          {active === 'teamtasks' && isAdmin && <TeamTasks profile={profile} allProfiles={allProfiles} allUserTasks={allUserTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAssign={(task: any) => addUserTask(task)} projects={projects} />}
+          {active === 'finances' && isAdmin && <Finances finances={finances} onSave={saveFinances} projects={projects} />}
+          {active === 'team' && <Team profile={profile} allProfiles={allProfiles} />}
+          {active === 'news' && <News />}
+        </div>
+      </div>
     </div>
   )
 }
