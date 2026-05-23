@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Profile, Project, Goal, UserTask, FinanceEntry } from '@/lib/types'
-import { getTabs, can } from '@/lib/permissions'
+import { getTabs } from '@/lib/permissions'
 import Overview from './tabs/Overview'
 import Productions from './tabs/Productions'
 import Goals from './tabs/Goals'
@@ -12,6 +12,7 @@ import TeamTasks from './tabs/TeamTasks'
 import Finances from './tabs/Finances'
 import Team from './tabs/Team'
 import News from './tabs/News'
+import Recommendations from './tabs/Recommendations'
 
 const TAB_LABELS: Record<string, string> = {
   overview: 'Overview',
@@ -22,6 +23,7 @@ const TAB_LABELS: Record<string, string> = {
   finances: 'Finances',
   team: 'Team',
   news: 'Industry News',
+  recommendations: 'Recommendations',
 }
 
 interface Props {
@@ -128,11 +130,12 @@ export default function Dashboard({
           {active === 'overview' && <Overview profile={profile} projects={projects} goals={goals} userTasks={userTasks} />}
           {active === 'productions' && <Productions profile={profile} projects={projects} onSave={isAdmin ? saveProjects : undefined} />}
           {active === 'goals' && <Goals profile={profile} goals={goals} onSave={isAdmin ? saveGoals : undefined} finances={finances} />}
-          {active === 'mytasks' && <MyTasks profile={profile} tasks={userTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAdd={(t) => addUserTask({ ...t, assigned_to: profile.id, assigned_by: profile.id, private: false })} projects={projects} />}
-          {active === 'teamtasks' && isAdmin && <TeamTasks profile={profile} allProfiles={allProfiles} allUserTasks={allUserTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAssign={(task) => addUserTask(task)} projects={projects} companyTasks={companyTasks} onSaveCompanyTasks={saveCompanyTasks} />}
+          {active === 'mytasks' && <MyTasks profile={profile} tasks={userTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAdd={(t: any) => addUserTask({ ...t, assigned_to: profile.id, assigned_by: profile.id, private: false })} projects={projects} />}
+          {active === 'teamtasks' && isAdmin && <TeamTasks profile={profile} allProfiles={allProfiles} allUserTasks={allUserTasks} onToggle={toggleUserTask} onDelete={deleteUserTask} onAssign={(task: any) => addUserTask(task)} projects={projects} />}
           {active === 'finances' && isAdmin && <Finances finances={finances} onSave={saveFinances} projects={projects} />}
           {active === 'team' && <Team profile={profile} allProfiles={allProfiles} />}
           {active === 'news' && <News />}
+          {active === 'recommendations' && <Recommendations profile={profile} projects={projects} />}
         </div>
       </div>
     </div>

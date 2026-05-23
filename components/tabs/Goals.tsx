@@ -37,20 +37,9 @@ function getSmartProgress(goal: Goal, finances?: any): number {
 
 function getTimeHorizon(target: string): 'quarter' | 'year' | 'fiveyear' {
   const t = target.toLowerCase()
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentQuarter = Math.ceil((now.getMonth() + 1) / 3)
   if (t.includes('2030') || t.includes('2029') || t.includes('2028')) return 'fiveyear'
   if (t.includes('2027')) return 'year'
-  if (t.includes('2026')) {
-    const qMatch = t.match(/q(\d)/)
-    if (qMatch) {
-      const targetQ = parseInt(qMatch[1])
-      if (targetQ <= currentQuarter + 1) return 'quarter'
-    }
-    return 'quarter'
-  }
-  return 'year'
+  return 'quarter'
 }
 
 export default function Goals({ profile, goals, onSave, finances }: {
@@ -95,8 +84,8 @@ export default function Goals({ profile, goals, onSave, finances }: {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
         <StatCard label="Milestones" value={localGoals.length} />
         <StatCard label="Avg progress" value={`${avgOKR}%`} color="#6a90b8" />
-        <StatCard label="North star" value="$750k" sub="Annual revenue by 2030" color="#b8b8c8" />
-        <StatCard label="Salary target" value="$90k" sub="Each — 4 person team" color="#6ab87a" />
+        {isAdmin && <StatCard label="North star" value="$750k" sub="Annual revenue by 2030" color="#b8b8c8" />}
+        {isAdmin && <StatCard label="Salary target" value="$90k" sub="Each — 4 person team" color="#6ab87a" />}
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -114,9 +103,7 @@ export default function Goals({ profile, goals, onSave, finances }: {
       </div>
 
       {filteredGoals.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-          No milestones in this time range.
-        </div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No milestones in this time range.</div>
       )}
 
       {['film', 'distribution', 'marketing', 'revenue', 'company'].map(cat => {
@@ -178,17 +165,19 @@ export default function Goals({ profile, goals, onSave, finances }: {
         ) : <button onClick={() => setAdding(true)} style={{ ...btnStyle('#b8b8c8'), marginTop: 8 }}>+ Add milestone</button>
       )}
 
-      <div style={{ marginTop: 28, background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '16px 18px' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em' }}>5-year vision — end of 2030</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
-          {[['9–11','Films made'],['$750k','Annual revenue'],['4','Salaried team'],['$90k','Each salary'],['Active','Distribution arm'],['#1','Indie co. in the South']].map(([v, l], i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ fontSize: 18, fontWeight: 500, color: '#b8b8c8' }}>{v}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 }}>{l}</div>
-            </div>
-          ))}
+      {isAdmin && (
+        <div style={{ marginTop: 28, background: 'rgba(255,255,255,0.02)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 14, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em' }}>5-year vision — end of 2030</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
+            {[['9–11','Films made'],['$750k','Annual revenue'],['4','Salaried team'],['$90k','Each salary'],['Active','Distribution arm'],['#1','Indie co. in the South']].map(([v, l], i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 18, fontWeight: 500, color: '#b8b8c8' }}>{v}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 }}>{l}</div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
